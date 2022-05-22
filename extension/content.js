@@ -55,6 +55,9 @@
 			const insertSvg = function (svg) {
 				existingDiagram.innerHTML = svg;
 			}
+
+			code = addDarkModeIfNeeded(code)
+
 			// Generate or regenerate diagram if it is existing.
 			window.mermaid.render(`${mermaid_name}_svg`, code, insertSvg);
 		}
@@ -62,7 +65,32 @@
 			console.error('>>> mermaid error', error);
 			console.error('Code', code);
 		}
-	};
+	}
+
+	function addDarkModeIfNeeded(code) {
+		let useDark = false;
+		const dataColorMode = window.document.documentElement.attributes['data-color-mode'].value
+
+		if (dataColorMode.includes('dark')) {
+			useDark = true
+		} else if (dataColorMode === 'auto') {
+			// is system set to dark theme?
+			if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+				const dataDarkTheme = window.document.documentElement.attributes['data-dark-theme'].value
+				if (dataDarkTheme.includes('dark')) {
+					useDark = true
+				}
+			} else {
+				const dataLightTheme = window.document.documentElement.attributes['data-light-theme'].value
+				if (dataLightTheme.includes('dark')) {
+					useDark = true
+				}
+			}
+		}
+
+		const theme = useDark ? '%%{init: { \'theme\':\'dark\', \'sequence\': {\'useMaxWidth\':false} } }%%\n' : '';
+		return theme + code
+	}
 
 	function transformElement(parentElement, transformation) {
 		const childElements = $(transformation.childElementSelector, parentElement);
