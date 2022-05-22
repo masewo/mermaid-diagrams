@@ -4,23 +4,35 @@
 	let transformations = [];
 
 	if (/github\.com/i.test(window.location.href)) {
-		transformations = [
+		transformations.push(...[
 			{
 				parentElementSelector: '[lang="mermaid"]',
 				childElementSelector: 'code',
-				diagramRegex: /(.+)/s
+				diagramRegex: /(.+)/s,
+				functionToCall: transformRender,
 			}
-		];
+		]);
+	}
+
+	if (/github\.com.*(_new|_edit)$/i.test(window.location.href)) {
+		transformations.push(...[
+			{
+				parentElementSelector: 'main',
+				childElementSelector: '.repository-content',
+				functionToCall: transformNewPage,
+			}
+		]);
 	}
 
 	if (/dev\.azure\.com/i.test(window.location.href)) {
-		transformations = [
+		transformations.push(...[
 			{
 				parentElementSelector: 'div.markdown-content > pre.hljs',
 				childElementSelector: 'code',
-				diagramRegex: /^\s*((classDiagram|classDiagram-v2|erDiagram|flowchart|gitGraph|journey|gannt|graph|pie|requirementDiagram|sequenceDiagram|stateDiagram|stateDiagram-v2) ?.*)$/s
+				diagramRegex: /^\s*((classDiagram|classDiagram-v2|erDiagram|flowchart|gitGraph|journey|gannt|graph|pie|requirementDiagram|sequenceDiagram|stateDiagram|stateDiagram-v2) ?.*)$/s,
+				functionToCall: transformRender,
 			}
-		];
+		]);
 	}
 
 	function renderChart(parentElem, code) {
@@ -95,15 +107,47 @@
 	function transformElement(parentElement, transformation) {
 		const childElements = $(transformation.childElementSelector, parentElement);
 		for (const childElement of childElements) {
-
-			const diagramRegexMatch = transformation.diagramRegex.exec(childElement.innerText);
-			if (diagramRegexMatch === null) {
-				return;
-			}
-
-			code = diagramRegexMatch[1];
-			renderChart(parentElement, code);
+			transformation.functionToCall(transformation, parentElement, childElement)
 		}
+	}
+
+	function transformRender(transformation, parentElement, childElement) {
+		const diagramRegexMatch = transformation.diagramRegex.exec(childElement.innerText);
+		if (diagramRegexMatch === null) {
+			return;
+		}
+
+		code = diagramRegexMatch[1];
+		renderChart(parentElement, code);
+	}
+
+	function transformNewPage(transformation, parentElement, childElement) {
+        let url = document.location.href;
+        url = url.substring(0, url.indexOf('/wiki/') + 5)
+
+		fetch(url).then(r => r.text()).then(result => {
+			const parser = new DOMParser();
+			const doc = parser.parseFromString(result, "text/html");
+			let sidebar = $('.wiki-rightbar > .gollum-markdown-content', doc)[0]
+			let html = `<div class="sidebar" style="float:left; margin:10px">${sidebar.innerHTML}</div>`
+
+			childElement.insertAdjacentHTML('afterbegin', html);
+
+			sidebar = $('.repository-content > .sidebar')[0]
+
+			for (const el of $('a', sidebar)) {
+				el.addEventListener("click", function (event) {
+						event.preventDefault();
+                        let href = el.href.substring(el.href.lastIndexOf('/') +1)
+                        href = decodeURIComponent(href);
+                        href = href.replaceAll('-', ' ')
+
+                        // this is not a colon!
+						$('input[name="wiki[name]"]')[0].value = href + '꞉ '
+					},
+					false);
+			}
+		})
 	}
 
 	function processElement(parentElement) {
