@@ -33,4 +33,7 @@ jobs:
           npm install github-wiki-sidebar -g
           
       - name: run github-wiki-sidebar
-        run: github-wiki-sidebar --git-push --silent
+        run: |
+          git config --global user.email "action@wiki"
+          git config --global user.name "Action@Wiki"
+          github-wiki-sidebar --git-push --silent
