@@ -111,6 +111,10 @@
 			const matchingElements = $(transformation.parentElementSelector);
 			if (matchingElements.includes(parentElement)) {
 				transformElement(parentElement, transformation);
+
+				// remove source code of mermaid diagram
+				matchingElements[0].remove();
+
 				break;
 			}
 		}
