@@ -31,7 +31,6 @@ jobs:
       - name: run npm install
         run: |
           npm install github-wiki-sidebar -g
-          ls -al
           
       - name: run github-wiki-sidebar
-        run: github-wiki-sidebar --git-push
+        run: github-wiki-sidebar --git-push --silent
